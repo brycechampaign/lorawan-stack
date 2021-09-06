@@ -35,28 +35,41 @@ import {
   fCntWidthDecode,
 } from '@console/lib/device-utils'
 
+import style from './mac-settings-section.styl'
+
 const m = defineMessages({
   delayValue: '{count, plural, one {{count} second} other {{count} seconds}}',
   factoryPresetFreqDescription: 'List of factory-preset frequencies. Note: order is respected.',
-  factoryPresetFreqTitle: 'Factory Preset Frequencies',
+  factoryPresetFreqTitle: 'Factory preset frequencies',
   freqAdd: 'Add Frequency',
   frequencyPlaceholder: 'e.g. 869525000 for 869,525 MHz',
   advancedMacSettings: 'Advanced MAC settings',
-  pingSlotFrequencyDescription: 'Frequency of the class B ping slot (Hz)',
-  pingSlotFrequencyTitle: 'Ping Slot Frequency',
+  pingSlotFrequencyTitle: 'Ping slot frequency',
+  desiredPingSlotFrequencyTitle: 'Desired ping slot frequency',
   pingSlotPeriodicityDescription: 'Periodicity of the class B ping slot',
-  pingSlotPeriodicityTitle: 'Ping Slot Periodicity',
+  pingSlotPeriodicityTitle: 'Ping slot periodicity',
   pingSlotPeriodicityValue: '{count, plural, one {every second} other {every {count} seconds}}',
+  pingSlotDataRateTitle: 'Ping slot data rate',
+  desiredPingSlotDataRateTitle: 'Desired ping slot data rate',
   resetWarning: 'Resetting is insecure and makes your device susceptible for replay attacks',
-  resetsFCnt: 'Resets Frame Counters',
-  rx1DataRateOffsetTitle: 'RX1 Data Rate Offset',
-  rx1DelayDescription: 'Class A RX1 delay in seconds. RX2 delay is RX1 delay + 1 second.',
-  rx1DelayTitle: 'RX1 Delay',
-  rx2DataRateIndexTitle: 'RX2 Data Rate Index',
-  rx2FrequencyDescription: 'Frequency for RX2 (Hz)',
-  rx2FrequencyTitle: 'RX2 Frequency',
+  resetsFCnt: 'Resets frame counters',
+  rx1DataRateOffsetTitle: 'Rx1 data rate offset',
+  desiredRx1DataRateOffsetTitle: 'Desired Rx1 data rate offset',
+  rx1DelayTitle: 'Rx1 delay',
+  desiredRx1DelayTitle: 'Desired Rx1 delay',
+  rx2DataRateIndexTitle: 'Rx2 data rate index',
+  desiredRx2DataRateIndexTitle: 'Desired Rx2 data rate index',
+  desiredRx2FrequencyTitle: 'Desired Rx2 frequency',
+  rx2FrequencyTitle: 'Rx2 frequency',
   updateSuccess: 'The MAC settings updated',
+  beaconFrequency: 'Beacon frequency',
+  desiredBeaconFrequency: 'Desired beacon frequency',
+  classBTimeout: 'Class B timeout',
+  classCTimeout: 'Class C timeout',
 })
+
+const timeoutEncode = value => (Boolean(value) ? `${value}s` : value)
+const timeoutDecode = value => (Boolean(value) ? RegExp(/\d+/).exec(value)[0] : value)
 
 // 0...7
 const pingSlotPeriodicityOptions = Array.from({ length: 8 }, (_, index) => {
@@ -69,7 +82,7 @@ const pingSlotPeriodicityOptions = Array.from({ length: 8 }, (_, index) => {
 })
 
 const MacSettingsSection = props => {
-  const { activationMode, resetsFCnt: initialFCnt, initiallyCollapsed, isClassB } = props
+  const { activationMode, resetsFCnt: initialFCnt, initiallyCollapsed, isClassB, isClassC } = props
 
   const isABP = activationMode === ACTIVATION_MODES.ABP
   const isMulticast = activationMode === ACTIVATION_MODES.MULTICAST
@@ -121,26 +134,50 @@ const MacSettingsSection = props => {
       </Form.Field>
       {isABP && (
         <>
+          <Form.FieldContainer horizontal>
+            <Form.Field
+              title={m.rx1DelayTitle}
+              type="number"
+              tooltipId={tooltipIds.RX1_DELAY}
+              name="mac_settings.rx1_delay"
+              component={Input}
+              min={1}
+              max={15}
+              inputWidth="xxs"
+            />
+            <Form.Field
+              title={m.desiredRx1DelayTitle}
+              type="number"
+              name="mac_settings.desired_rx1_delay"
+              component={Input}
+              min={1}
+              max={15}
+              inputWidth="xxs"
+            />
+          </Form.FieldContainer>
+          <Form.FieldContainer horizontal>
+            <Form.Field
+              title={m.rx1DataRateOffsetTitle}
+              type="number"
+              name="mac_settings.rx1_data_rate_offset"
+              inputWidth="xxs"
+              component={Input}
+              min={0}
+              max={7}
+              tooltipId={tooltipIds.DATA_RATE_OFFSET}
+            />
+            <Form.Field
+              title={m.desiredRx1DataRateOffsetTitle}
+              type="number"
+              inputWidth="xxs"
+              name="mac_settings.desired_rx1_data_rate_offset"
+              component={Input}
+              min={0}
+              max={7}
+            />
+          </Form.FieldContainer>
           <Form.Field
-            title={m.rx1DelayTitle}
-            type="number"
-            description={m.rx1DelayDescription}
-            name="mac_settings.rx1_delay"
-            component={Input}
-            min={1}
-            max={15}
-          />
-          <Form.Field
-            title={m.rx1DataRateOffsetTitle}
-            type="number"
-            name="mac_settings.rx1_data_rate_offset"
-            component={Input}
-            min={0}
-            max={7}
-            tooltipId={tooltipIds.DATA_RATE_OFFSET}
-          />
-          <Form.Field
-            title={m.resetsFCnt}
+            title={sharedMessages.resetsFCnt}
             onChange={handleResetsFCntChange}
             warning={resetsFCnt ? m.resetWarning : undefined}
             name="mac_settings.resets_f_cnt"
@@ -149,26 +186,48 @@ const MacSettingsSection = props => {
           />
         </>
       )}
-      <Form.Field
-        title={m.rx2DataRateIndexTitle}
-        type="number"
-        name="mac_settings.rx2_data_rate_index"
-        component={Input}
-        min={0}
-        max={15}
-        tooltipId={tooltipIds.RX2_DATA_RATE_INDEX}
-      />
-      <Form.Field
-        type="number"
-        min={100000}
-        step={100}
-        title={m.rx2FrequencyTitle}
-        description={m.rx2FrequencyDescription}
-        placeholder={m.frequencyPlaceholder}
-        name="mac_settings.rx2_frequency"
-        component={Input}
-        tooltipId={tooltipIds.RX2_FREQUENCY}
-      />
+      <Form.FieldContainer horizontal>
+        <Form.Field
+          title={m.rx2DataRateIndexTitle}
+          type="number"
+          name="mac_settings.rx2_data_rate_index"
+          component={Input}
+          min={0}
+          max={15}
+          tooltipId={tooltipIds.RX2_DATA_RATE_INDEX}
+          inputWidth="xxs"
+        />
+        <Form.Field
+          title={m.desiredRx2DataRateIndexTitle}
+          type="number"
+          name="mac_settings.desired_rx2_data_rate_index"
+          component={Input}
+          min={0}
+          max={15}
+          inputWidth="xxs"
+        />
+      </Form.FieldContainer>
+      <Form.FieldContainer horizontal>
+        <Form.Field
+          type="number"
+          min={100000}
+          step={100}
+          title={m.rx2FrequencyTitle}
+          placeholder={m.frequencyPlaceholder}
+          name="mac_settings.rx2_frequency"
+          component={Input}
+          tooltipId={tooltipIds.RX2_FREQUENCY}
+        />
+        <Form.Field
+          type="number"
+          min={100000}
+          step={100}
+          title={m.desiredRx2FrequencyTitle}
+          placeholder={m.frequencyPlaceholder}
+          name="mac_settings.desired_rx2_frequency"
+          component={Input}
+        />
+      </Form.FieldContainer>
       <Form.Field
         indexAsKey
         name="mac_settings.factory_preset_frequencies"
@@ -178,8 +237,32 @@ const MacSettingsSection = props => {
         addMessage={m.freqAdd}
         valuePlaceholder={m.frequencyPlaceholder}
       />
+      {isClassC && (
+        <Form.Field
+          className={style.smallField}
+          title={m.classCTimeout}
+          name="mac_settings.class_c_timeout"
+          tooltipId={tooltipIds.CLASS_C_TIMEOUT}
+          encode={timeoutEncode}
+          decode={timeoutDecode}
+          component={Input}
+          type="number"
+          inputWidth="xxs"
+        />
+      )}
       {(isClassB || isMulticast) && (
         <>
+          <Form.Field
+            className={style.smallField}
+            title={m.classBTimeout}
+            name="mac_settings.class_b_timeout"
+            tooltipId={tooltipIds.CLASS_B_TIMEOUT}
+            encode={timeoutEncode}
+            decode={timeoutDecode}
+            component={Input}
+            type="number"
+            inputWidth="xxs"
+          />
           <Form.Field
             title={m.pingSlotPeriodicityTitle}
             description={m.pingSlotPeriodicityDescription}
@@ -189,16 +272,66 @@ const MacSettingsSection = props => {
             required={pingPeriodicityRequired}
             menuPlacement="top"
           />
-          <Form.Field
-            type="number"
-            min={100000}
-            step={100}
-            title={m.pingSlotFrequencyTitle}
-            description={m.pingSlotFrequencyDescription}
-            placeholder={m.frequencyPlaceholder}
-            name="mac_settings.ping_slot_frequency"
-            component={Input}
-          />
+          <Form.FieldContainer horizontal>
+            <Form.Field
+              type="number"
+              min={100000}
+              title={m.beaconFrequency}
+              placeholder={m.frequencyPlaceholder}
+              name="mac_settings.beacon_frequency"
+              tooltipId={tooltipIds.BEACON_FREQUENCY}
+              component={Input}
+            />
+            <Form.Field
+              type="number"
+              min={100000}
+              title={m.desiredBeaconFrequency}
+              placeholder={m.frequencyPlaceholder}
+              name="mac_settings.desired_beacon_frequency"
+              tooltipId={tooltipIds.BEACON_FREQUENCY}
+              component={Input}
+            />
+          </Form.FieldContainer>
+          <Form.FieldContainer horizontal>
+            <Form.Field
+              type="number"
+              min={100000}
+              step={100}
+              title={m.pingSlotFrequencyTitle}
+              placeholder={m.frequencyPlaceholder}
+              name="mac_settings.ping_slot_frequency"
+              tooltipId={tooltipIds.PING_SLOT_FREQUENCY}
+              component={Input}
+            />
+            <Form.Field
+              type="number"
+              min={100000}
+              step={100}
+              title={m.desiredPingSlotFrequencyTitle}
+              placeholder={m.frequencyPlaceholder}
+              name="mac_settings.desired_ping_slot_frequency"
+              component={Input}
+            />
+          </Form.FieldContainer>
+          <Form.FieldContainer horizontal>
+            <Form.Field
+              title={m.pingSlotDataRateTitle}
+              name="mac_settings.ping_slot_data_rate_index"
+              tooltipId={tooltipIds.PING_SLOT_DATA_RATE_INDEX}
+              component={Input}
+              type="number"
+              min={0}
+              max={15}
+            />
+            <Form.Field
+              title={m.desiredPingSlotDataRateTitle}
+              name="mac_settings.desired_ping_slot_data_rate_index"
+              component={Input}
+              type="number"
+              min={0}
+              max={15}
+            />
+          </Form.FieldContainer>
         </>
       )}
     </Form.CollapseSection>
@@ -209,6 +342,7 @@ MacSettingsSection.propTypes = {
   activationMode: PropTypes.oneOf(Object.values(ACTIVATION_MODES)).isRequired,
   initiallyCollapsed: PropTypes.bool,
   isClassB: PropTypes.bool,
+  isClassC: PropTypes.bool,
   resetsFCnt: PropTypes.bool,
 }
 
@@ -216,6 +350,7 @@ MacSettingsSection.defaultProps = {
   resetsFCnt: false,
   initiallyCollapsed: true,
   isClassB: false,
+  isClassC: false,
 }
 
 export default MacSettingsSection
