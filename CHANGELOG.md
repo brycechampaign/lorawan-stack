@@ -12,6 +12,7 @@ For details about compatibility between different releases, see the **Commitment
 ### Added
 
 - Packet Broker gateway visibility management (default settings only). See `ttn-lw-cli packetbroker home-networks gateway-visibilities --help` for more information.
+- Handling of MAC and PHY versions in end device forms based on selected frequency plan in the Console.
 
 ### Changed
 
